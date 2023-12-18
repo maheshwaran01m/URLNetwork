@@ -15,9 +15,63 @@ public final class URLNetwork {
     _ = NetworkMonitor.shared
   }
   
+  // MARK: - GET
+  
+  public func get<Output: Decodable>(
+    _ url: URL,
+    urlConfig config: URLSessionConfiguration? = nil,
+    debugPrintEnabled: Bool = false,
+    completion: @escaping (Result<Output, Error>) -> Void) {
+      
+      guard network.isActive else {
+        completion(.failure(URLError(.notConnectedToInternet)))
+        return
+      }
+      let session = URLSession(configuration: config ?? urlSessionConfiguration)
+      
+      session
+        .dataTask(with: url) { [weak self] data, response, error in
+          guard let self, error == nil else {
+            completion(.failure(error ?? URLError(.badServerResponse)))
+            return
+          }
+          guard let data else {
+            completion(.failure(URLError(.cannotDecodeRawData)))
+            return
+          }
+          do {
+            if debugPrintEnabled {
+              debugPrint(data.description)
+            }
+            let decoder = try defaultDecoder.decode(Output.self, from: data)
+            completion(.success(decoder))
+          } catch {
+            completion(.failure(URLError(.cannotDecodeContentData)))
+          }
+        }
+        .resume()
+    }
+  
+  public func get<Output: Decodable>(
+    _ url: URL,
+    urlConfig config: URLSessionConfiguration? = nil,
+    debugPrintEnabled: Bool = false) -> AnyPublisher<Output, Error> {
+      
+      guard network.isActive else {
+        return Fail(error: URLError(.notConnectedToInternet)).eraseToAnyPublisher()
+      }
+      let session = URLSession(configuration: config ?? urlSessionConfiguration)
+      
+      return session
+        .dataTaskPublisher(for: url)
+        .map(\.data)
+        .decode(type: Output.self, decoder: defaultDecoder)
+        .eraseToAnyPublisher()
+    }
+  
   // MARK: - POST
   
-  public func upload<Input: Encodable, Output: Decodable>(
+  public func post<Input: Encodable, Output: Decodable>(
     _ data: Input,
     to url: URL,
     httpMethod: HttpMethodType = .post,
@@ -39,8 +93,8 @@ public final class URLNetwork {
       
       URLSession
         .shared
-        .dataTask(with: request) { data, response, error in
-          guard error == nil else {
+        .dataTask(with: request) { [weak self] data, response, error in
+          guard let self, error == nil else {
             completion(.failure(error ?? URLError(.badServerResponse)))
             return
           }
@@ -53,7 +107,7 @@ public final class URLNetwork {
             if debugPrintEnabled {
               debugPrint(data.description)
             }
-            let decoder = try JSONDecoder().decode(Output.self, from: data)
+            let decoder = try defaultDecoder.decode(Output.self, from: data)
             completion(.success(decoder))
           } catch {
             completion(.failure(URLError(.cannotDecodeContentData)))
@@ -61,7 +115,7 @@ public final class URLNetwork {
         }.resume()
     }
   
-  public func upload<Input: Encodable, Output: Decodable>(
+  public func post<Input: Encodable, Output: Decodable>(
     _ data: Input,
     to url: URL,
     httpMethod: HttpMethodType = .post,
@@ -82,10 +136,29 @@ public final class URLNetwork {
         .shared
         .dataTaskPublisher(for: request)
         .map(\.data)
-        .decode(type: Output.self, decoder: JSONDecoder())
+        .decode(type: Output.self, decoder: defaultDecoder)
         .eraseToAnyPublisher()
     }
+}
+
+public extension URLNetwork {
   
+  var urlSessionConfiguration: URLSessionConfiguration {
+    let config = URLSessionConfiguration.default
+    config.allowsExpensiveNetworkAccess = false
+    config.allowsConstrainedNetworkAccess = false
+    config.waitsForConnectivity = true
+    
+    return config
+  }
+  
+  var defaultDecoder: JSONDecoder {
+    let decoder = JSONDecoder()
+    decoder.keyDecodingStrategy = .convertFromSnakeCase
+    decoder.dateDecodingStrategy = .iso8601
+    
+    return decoder
+  }
 }
 
 extension URLNetwork {
