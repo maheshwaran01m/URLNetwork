@@ -32,17 +32,21 @@ struct ContentView: View {
   
   func bottomView() -> some View {
     HStack {
-      Button("Post", action: viewModel.postRequest)
+      Button(action: viewModel.postRequest) {
+        Text("Post")
         .padding()
         .frame(maxWidth: .infinity)
         .background(Color.yellow.opacity(0.6))
         .clipShape(RoundedRectangle(cornerRadius: 8))
+      }
       
-      Button("Get", action: viewModel.getRequest)
+      Button(action: viewModel.getRequest) {
+        Text("Get")
         .padding()
         .frame(maxWidth: .infinity)
         .background(Color.green.opacity(0.6))
         .clipShape(RoundedRectangle(cornerRadius: 8))
+      }
     }
     .padding()
     .background(Color(uiColor: UIColor.systemBackground))

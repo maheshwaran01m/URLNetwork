@@ -18,6 +18,9 @@ class NetworkViewModel: ObservableObject {
   
   func getRequest() {
     let url = URL(string: "https://itunes.apple.com/search?media=music&term=astrid.s")!
+    
+    let start = CFAbsoluteTimeGetCurrent()
+    
     URLNetwork.shared
       .get(url) { [weak self] (result: Result<APIResponse, Error>) in
         switch result {
@@ -30,6 +33,8 @@ class NetworkViewModel: ObservableObject {
           self?.errorMessage = error.localizedDescription
         }
       }
+    let end = CFAbsoluteTimeGetCurrent()
+    debugPrint("Took \(String(format: "%f", end - start)) seconds to find: \(records.first?.name ?? "")")
   }
   
   func postRequest() {
