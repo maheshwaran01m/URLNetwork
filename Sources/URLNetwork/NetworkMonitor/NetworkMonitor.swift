@@ -10,7 +10,7 @@ import Network
 
 public final class NetworkMonitor: ObservableObject {
   
-  static let shared = NetworkMonitor()
+  public static let shared = NetworkMonitor()
   
   private let monitor = NWPathMonitor()
   private let queue = DispatchQueue(label: "network_Monitor")
