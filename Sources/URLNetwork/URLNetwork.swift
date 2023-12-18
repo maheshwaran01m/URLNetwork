@@ -7,7 +7,7 @@ import Foundation
 
 public final class URLNetwork {
   
-  static let shared = URLNetwork()
+  public static let shared = URLNetwork()
   
   private let network = NetworkMonitor.shared
   
