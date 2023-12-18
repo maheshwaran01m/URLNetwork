@@ -1,0 +1,14 @@
+{
+  "pins" : [
+    {
+      "identity" : "urlnetwork",
+      "kind" : "remoteSourceControl",
+      "location" : "git@github.com:maheshwaran01m/URLNetwork.git",
+      "state" : {
+        "branch" : "main",
+        "revision" : "1940e66b930e579e2f1d099ea2320dcdd7972ebf"
+      }
+    }
+  ],
+  "version" : 2
+}
