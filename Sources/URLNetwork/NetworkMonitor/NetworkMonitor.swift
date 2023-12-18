@@ -8,17 +8,17 @@
 import Foundation
 import Network
 
-class NetworkMonitor: ObservableObject {
+public final class NetworkMonitor: ObservableObject {
   
   static let shared = NetworkMonitor()
   
   private let monitor = NWPathMonitor()
   private let queue = DispatchQueue(label: "network_Monitor")
   
-  var isActive = false
-  var isExpensive = false
-  var isConstrained = false
-  var connectionType = NWInterface.InterfaceType.other
+  public var isActive = false
+  public var isExpensive = false
+  public var isConstrained = false
+  public var connectionType = NWInterface.InterfaceType.other
   
   private init() {
     monitor.pathUpdateHandler = { [weak self] path in
@@ -43,11 +43,11 @@ class NetworkMonitor: ObservableObject {
 
 extension NetworkMonitor: CustomStringConvertible, CustomDebugStringConvertible {
   
-  var description: String {
+  public var description: String {
     "Network: \(connectionType),  Status: \(isActive ? "Connected" : "Disconnected")"
   }
   
-  var debugDescription: String {
+  public var debugDescription: String {
     "Network: \(connectionType), Status: \(monitor.currentPath.status)"
   }
 }
