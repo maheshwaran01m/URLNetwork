@@ -41,7 +41,8 @@ public final class URLNetwork {
           }
           do {
             if debugPrintEnabled {
-              debugPrint(data.description)
+              // debugPrint(data.description)
+              print(try JSONSerialization.jsonObject(with: data))
             }
             let decoder = try defaultDecoder.decode(Output.self, from: data)
             completion(.success(decoder))
@@ -105,7 +106,8 @@ public final class URLNetwork {
           
           do {
             if debugPrintEnabled {
-              debugPrint(data.description)
+              // debugPrint(data.description)
+              print(try JSONSerialization.jsonObject(with: data))
             }
             let decoder = try defaultDecoder.decode(Output.self, from: data)
             completion(.success(decoder))
