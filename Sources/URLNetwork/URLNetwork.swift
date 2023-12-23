@@ -20,6 +20,8 @@ public final class URLNetwork {
   public func get<Output: Decodable>(
     _ url: URL,
     urlConfig config: URLSessionConfiguration? = nil,
+    dateDecodingStategy: JSONDecoder.DateDecodingStrategy = .iso8601,
+    keyDecodingStrategy: JSONDecoder.KeyDecodingStrategy = .useDefaultKeys,
     debugPrintEnabled: Bool = false,
     completion: @escaping (Result<Output, Error>) -> Void) {
       
@@ -30,8 +32,8 @@ public final class URLNetwork {
       let session = URLSession(configuration: config ?? urlSessionConfiguration)
       
       session
-        .dataTask(with: url) { [weak self] data, response, error in
-          guard let self, error == nil else {
+        .dataTask(with: url) { data, response, error in
+          guard error == nil else {
             completion(.failure(error ?? URLError(.badServerResponse)))
             return
           }
@@ -44,7 +46,11 @@ public final class URLNetwork {
               // debugPrint(data.description)
               print(try JSONSerialization.jsonObject(with: data))
             }
-            let decoder = try defaultDecoder.decode(Output.self, from: data)
+            let jsonDecoder = JSONDecoder()
+            jsonDecoder.dateDecodingStrategy = dateDecodingStategy
+            jsonDecoder.keyDecodingStrategy = keyDecodingStrategy
+            
+            let decoder = try jsonDecoder.decode(Output.self, from: data)
             completion(.success(decoder))
           } catch {
             completion(.failure(URLError(.cannotDecodeContentData)))
@@ -56,6 +62,8 @@ public final class URLNetwork {
   public func get<Output: Decodable>(
     _ url: URL,
     urlConfig config: URLSessionConfiguration? = nil,
+    dateDecodingStategy: JSONDecoder.DateDecodingStrategy = .iso8601,
+    keyDecodingStrategy: JSONDecoder.KeyDecodingStrategy = .useDefaultKeys,
     debugPrintEnabled: Bool = false) -> AnyPublisher<Output, Error> {
       
       guard network.isActive else {
@@ -63,10 +71,14 @@ public final class URLNetwork {
       }
       let session = URLSession(configuration: config ?? urlSessionConfiguration)
       
+      let jsonDecoder = JSONDecoder()
+      jsonDecoder.dateDecodingStrategy = dateDecodingStategy
+      jsonDecoder.keyDecodingStrategy = keyDecodingStrategy
+      
       return session
         .dataTaskPublisher(for: url)
         .map(\.data)
-        .decode(type: Output.self, decoder: defaultDecoder)
+        .decode(type: Output.self, decoder: jsonDecoder)
         .eraseToAnyPublisher()
     }
   
@@ -77,6 +89,8 @@ public final class URLNetwork {
     to url: URL,
     httpMethod: HttpMethodType = .post,
     contentType: String = "application/json",
+    dateDecodingStategy: JSONDecoder.DateDecodingStrategy = .iso8601,
+    keyDecodingStrategy: JSONDecoder.KeyDecodingStrategy = .useDefaultKeys,
     debugPrintEnabled: Bool = false,
     completion: @escaping (Result<Output, Error>) -> Void) {
       
@@ -94,8 +108,8 @@ public final class URLNetwork {
       
       URLSession
         .shared
-        .dataTask(with: request) { [weak self] data, response, error in
-          guard let self, error == nil else {
+        .dataTask(with: request) { data, response, error in
+          guard error == nil else {
             completion(.failure(error ?? URLError(.badServerResponse)))
             return
           }
@@ -109,7 +123,11 @@ public final class URLNetwork {
               // debugPrint(data.description)
               print(try JSONSerialization.jsonObject(with: data))
             }
-            let decoder = try defaultDecoder.decode(Output.self, from: data)
+            let jsonDecoder = JSONDecoder()
+            jsonDecoder.dateDecodingStrategy = dateDecodingStategy
+            jsonDecoder.keyDecodingStrategy = keyDecodingStrategy
+            
+            let decoder = try jsonDecoder.decode(Output.self, from: data)
             completion(.success(decoder))
           } catch {
             completion(.failure(URLError(.cannotDecodeContentData)))
@@ -121,7 +139,9 @@ public final class URLNetwork {
     _ data: Input,
     to url: URL,
     httpMethod: HttpMethodType = .post,
-    contentType: String = "application/json") -> AnyPublisher<Output, Error> {
+    contentType: String = "application/json",
+    dateDecodingStategy: JSONDecoder.DateDecodingStrategy = .iso8601,
+    keyDecodingStrategy: JSONDecoder.KeyDecodingStrategy = .useDefaultKeys) -> AnyPublisher<Output, Error> {
       
       guard network.isActive else {
         return Fail(error: URLError(.notConnectedToInternet)).eraseToAnyPublisher()
@@ -134,11 +154,15 @@ public final class URLNetwork {
       let encoder = JSONEncoder()
       request.httpBody = try? encoder.encode(data)
       
+      let jsonDecoder = JSONDecoder()
+      jsonDecoder.dateDecodingStrategy = dateDecodingStategy
+      jsonDecoder.keyDecodingStrategy = keyDecodingStrategy
+      
       return URLSession
         .shared
         .dataTaskPublisher(for: request)
         .map(\.data)
-        .decode(type: Output.self, decoder: defaultDecoder)
+        .decode(type: Output.self, decoder: jsonDecoder)
         .eraseToAnyPublisher()
     }
 }
@@ -152,14 +176,6 @@ public extension URLNetwork {
     config.waitsForConnectivity = true
     
     return config
-  }
-  
-  var defaultDecoder: JSONDecoder {
-    let decoder = JSONDecoder()
-    decoder.keyDecodingStrategy = .convertFromSnakeCase
-    decoder.dateDecodingStrategy = .iso8601
-    
-    return decoder
   }
 }
 
