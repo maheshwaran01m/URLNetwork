@@ -15,7 +15,7 @@ struct ContentView: View {
     NavigationStack {
       List(viewModel.records) { record in
         VStack(alignment: .leading, spacing: 8) {
-          Text(record.id.description)
+          Text(record.song ?? "")
           Text(record.name)
         }
       }
