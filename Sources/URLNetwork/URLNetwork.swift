@@ -11,9 +11,7 @@ public final class URLNetwork {
   
   private let network = NetworkMonitor.shared
   
-  private init() {
-    _ = NetworkMonitor.shared
-  }
+  private init() {}
   
   // MARK: - GET
   
@@ -33,17 +31,21 @@ public final class URLNetwork {
       
       session
         .dataTask(with: url) { data, response, error in
+          
+          let result: Result<Output, Error>
+          
+          defer { completion(result) }
+          
           guard error == nil else {
-            completion(.failure(error ?? URLError(.badServerResponse)))
+            result = .failure(error ?? URLError(.badServerResponse))
             return
           }
           guard let data else {
-            completion(.failure(URLError(.cannotDecodeRawData)))
+            result = .failure(URLError(.cannotDecodeRawData))
             return
           }
           do {
             if debugPrintEnabled {
-              // debugPrint(data.description)
               print(try JSONSerialization.jsonObject(with: data))
             }
             let jsonDecoder = JSONDecoder()
@@ -51,9 +53,9 @@ public final class URLNetwork {
             jsonDecoder.keyDecodingStrategy = keyDecodingStrategy
             
             let decoder = try jsonDecoder.decode(Output.self, from: data)
-            completion(.success(decoder))
+            result = .success(decoder)
           } catch {
-            completion(.failure(URLError(.cannotDecodeContentData)))
+            result = .failure(URLError(.cannotDecodeContentData))
           }
         }
         .resume()
@@ -109,18 +111,22 @@ public final class URLNetwork {
       URLSession
         .shared
         .dataTask(with: request) { data, response, error in
+          
+          let result: Result<Output, Error>
+          
+          defer { completion(result) }
+          
           guard error == nil else {
-            completion(.failure(error ?? URLError(.badServerResponse)))
+            result = .failure(error ?? URLError(.badServerResponse))
             return
           }
           guard let data else {
-            completion(.failure(URLError(.cannotDecodeRawData)))
+            result = .failure(URLError(.cannotDecodeRawData))
             return
           }
           
           do {
             if debugPrintEnabled {
-              // debugPrint(data.description)
               print(try JSONSerialization.jsonObject(with: data))
             }
             let jsonDecoder = JSONDecoder()
@@ -128,9 +134,9 @@ public final class URLNetwork {
             jsonDecoder.keyDecodingStrategy = keyDecodingStrategy
             
             let decoder = try jsonDecoder.decode(Output.self, from: data)
-            completion(.success(decoder))
+            result = .success(decoder)
           } catch {
-            completion(.failure(URLError(.cannotDecodeContentData)))
+            result = .failure(URLError(.cannotDecodeContentData))
           }
         }.resume()
     }

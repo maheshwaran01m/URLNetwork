@@ -10,10 +10,16 @@ import Foundation
 
 #if canImport(UIKit)
 import UIKit
+
+public typealias PlatformImage = UIImage
+public typealias PlatformImageView = UIImageView
 #endif
 
 #if canImport(AppKit)
 import AppKit
+
+public typealias PlatformImage = NSImage
+public typealias PlatformImageView = NSImageView
 #endif
 
 public final class CacheManager {
@@ -22,96 +28,56 @@ public final class CacheManager {
   
   private var cancelBag = Set<AnyCancellable>()
   
-#if os(macOS)
-  private let nsImageCache = NSCache<NSString, NSImage>()
-#else
-  private let uiImageCache = NSCache<NSString, UIImage>()
-#endif
+  private let imageCache = NSCache<NSString, PlatformImage>()
 }
 
 extension CacheManager {
   
-#if os(macOS)
-  public func downloadImage(_ urlString: String, completion: @escaping (Result<NSImage, Error>) -> Void) {
+  public func downloadImage(_ urlString: String, completion: @escaping (Result<PlatformImage, Error>) -> Void) {
     
     let cacheKey = NSString(string: urlString)
     
-    if let image = nsImageCache.object(forKey: cacheKey) {
+    if let image = imageCache.object(forKey: cacheKey) {
       completion(.success(image))
     } else {
       
       guard let url = URL(string: urlString) else { return }
       
       URLSession.shared.dataTask(with: url) { [weak self] data, response, error in
+        
+        let result: Result<PlatformImage, Error>
+        
+        defer { completion(result) }
+        
         guard let self, error == nil else {
-          completion(.failure(URLError(.badServerResponse)))
+          result = .failure(URLError(.badServerResponse))
           return
         }
         guard let response = response as? HTTPURLResponse, response.statusCode == 200 else {
-          completion(.failure(URLError(.badServerResponse)))
+          result = .failure(URLError(.badServerResponse))
           return
         }
-        guard let data, let image = NSImage(data: data) else {
-          completion(.failure(URLError(.dataNotAllowed)))
-          return
-        }
-        // cache image
-        nsImageCache.setObject(image, forKey: cacheKey)
-        
-        completion(.success(image))
-      }.resume()
-    }
-  }
-  #else
-  
-  public func downloadImage(_ urlString: String, completion: @escaping (Result<UIImage, Error>) -> Void) {
-    
-    let cacheKey = NSString(string: urlString)
-    
-    if let image = uiImageCache.object(forKey: cacheKey) {
-      completion(.success(image))
-    } else {
-      
-      guard let url = URL(string: urlString) else { return }
-      
-      URLSession.shared.dataTask(with: url) { [weak self] data, response, error in
-        guard let self, error == nil else {
-          completion(.failure(URLError(.badServerResponse)))
-          return
-        }
-        guard let response = response as? HTTPURLResponse, response.statusCode == 200 else {
-          completion(.failure(URLError(.badServerResponse)))
-          return
-        }
-        guard let data, let image = UIImage(data: data) else {
-          completion(.failure(URLError(.dataNotAllowed)))
+        guard let data, let image = PlatformImage(data: data) else {
+          result = .failure(URLError(.dataNotAllowed))
           return
         }
         // cache image
-        uiImageCache.setObject(image, forKey: cacheKey)
+        imageCache.setObject(image, forKey: cacheKey)
         
-        completion(.success(image))
+        result = .success(image)
       }.resume()
     }
   }
-#endif
 }
 
 // MARK: - Get
 
 public extension CacheManager {
   
-#if os(macOS)
-  func getValue(_ key: String) -> NSImage? {
-    guard let image = nsImageCache.object(forKey: cacheKey(key)) else { return nil }
+  func getValue(_ key: String) -> PlatformImage? {
+    guard let image = imageCache.object(forKey: cacheKey(key)) else { return nil }
     return image
   }
-#else
-  func getValue(_ key: String) -> UIImage? {
-    guard let image = uiImageCache.object(forKey: cacheKey(key)) else { return nil }
-    return image
-  }
-#endif
   
   func contains(_ key: String) -> Bool {
     return getValue(key) != nil
@@ -127,18 +93,10 @@ public extension CacheManager {
 public extension CacheManager {
   
   func clearImageCache() {
-#if os(macOS)
-    nsImageCache.removeAllObjects()
-#else
-    uiImageCache.removeAllObjects()
-#endif
+    imageCache.removeAllObjects()
   }
   
   func clearImageCache(forKey key: String) {
-#if os(macOS)
-    nsImageCache.removeObject(forKey: cacheKey(key))
-#else
-    uiImageCache.removeObject(forKey: cacheKey(key))
-#endif
+    imageCache.removeObject(forKey: cacheKey(key))
   }
 }
